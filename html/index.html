@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Operation UI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="overlay"></div>
+
+  <div id="operation-ui">
+    <div id="header" class="drag-handle"> 🔵🔵<span id="op-title">Operation</span></div>
+    <div id="member-list"></div>
+    <button id="leave-btn">Leave Operation</button>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // Clicking outside closes focus mode
+    document.getElementById("overlay").addEventListener("click", () => {
+      fetch(`https://${GetParentResourceName()}/unfocus`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+    });
+  </script>
+</body>
+</html>
