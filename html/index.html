@@ -2,27 +2,38 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Operation UI</title>
+  <title>Police Operation UI</title>
   <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   <div id="overlay"></div>
 
   <div id="operation-ui">
-    <div id="header" class="drag-handle"> 🔵🔵<span id="op-title">Operation</span></div>
+    <div id="header" class="drag-handle">
+      <span id="op-title">Operation</span>
+    </div>
     <div id="member-list"></div>
-    <button id="leave-btn">Leave Operation</button>
+    <button id="leave-btn">🚪 Leave Operation</button>
   </div>
 
   <script src="script.js"></script>
   <script>
-    // Clicking outside closes focus mode
-    document.getElementById("overlay").addEventListener("click", () => {
-      fetch(`https://${GetParentResourceName()}/unfocus`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({})
-      });
+    // Enhanced overlay click handler
+    document.getElementById("overlay").addEventListener("click", (e) => {
+      // Only close if clicking directly on overlay, not on UI elements
+      if (e.target === document.getElementById("overlay")) {
+        fetch(`https://${GetParentResourceName()}/unfocus`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+      }
+    });
+
+    // Prevent context menu on right click
+    document.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
     });
   </script>
 </body>
