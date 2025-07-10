@@ -7,6 +7,25 @@ const memberList = document.getElementById("member-list");
 const leaveBtn = document.getElementById("leave-btn");
 const opTitle = document.getElementById("op-title");
 const overlay = document.getElementById("overlay");
+const memberCountEl = document.getElementById("member-count");
+const currentTimeEl = document.getElementById("current-time");
+
+// Update time every second
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], {
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false
+    });
+    if (currentTimeEl) {
+        currentTimeEl.textContent = timeString;
+    }
+}
+
+// Start time updates
+setInterval(updateTime, 1000);
+updateTime();
 
 // Restore UI position if saved
 window.addEventListener("load", () => {
@@ -26,7 +45,7 @@ window.addEventListener("message", function (event) {
         showUI();
         updateTitle(data.operation);
         updateMembers(data.members, data.channel);
-        addOperationStats(data.members);
+        updateStats(data.members);
     }
 
     if (data.action === "hide") {
@@ -35,7 +54,7 @@ window.addEventListener("message", function (event) {
 
     if (data.action === "update") {
         updateMembers(data.members, data.channel);
-        addOperationStats(data.members);
+        updateStats(data.members);
     }
 });
 
@@ -44,11 +63,17 @@ function showUI() {
     ui.style.display = "block";
     ui.classList.add("show");
     ui.classList.remove("hide");
+    
+    // Add entrance animation delay for better UX
+    setTimeout(() => {
+        ui.style.pointerEvents = "auto";
+    }, 100);
 }
 
 function hideUI() {
     ui.classList.add("hide");
     ui.classList.remove("show");
+    ui.style.pointerEvents = "none";
     
     setTimeout(() => {
         ui.style.display = "none";
@@ -56,24 +81,25 @@ function hideUI() {
     }, 300);
 }
 
-// Enhanced title update with status indicator
 function updateTitle(operationTitle) {
-    opTitle.innerHTML = `${operationTitle} <div class="status-indicator"></div>`;
+    opTitle.textContent = operationTitle;
 }
 
-// Enhanced member list update with better styling
 function updateMembers(members, channel) {
     memberList.innerHTML = "";
 
     if (members.length === 0) {
         memberList.innerHTML = `
             <div class="empty-state">
-                <div>No officers assigned</div>
+                <i class="fas fa-users empty-state-icon"></i>
+                <div class="empty-state-text">No Officers Assigned</div>
+                <div class="empty-state-subtext">Waiting for team members to join</div>
             </div>
         `;
         return;
     }
 
+    // Extract max from operation title
     let max = 99;
     const match = /\((\d+)\/(\d+)\)/.exec(opTitle.textContent);
     if (match) max = parseInt(match[2]);
@@ -87,52 +113,69 @@ function updateMembers(members, channel) {
             div.classList.add("over-limit");
         }
 
+        // Determine rank icon
+        const rankIcons = {
+            'Chief': 'fas fa-star',
+            'Captain': 'fas fa-shield-alt',
+            'Lieutenant': 'fas fa-medal',
+            'Sergeant': 'fas fa-chevron-up',
+            'Officer': 'fas fa-user-shield',
+            'Detective': 'fas fa-search',
+            'default': 'fas fa-user-shield'
+        };
+
+        const rank = member.rank || 'Officer';
+        const iconClass = rankIcons[rank] || rankIcons['default'];
+        const isOverLimit = index + 1 > max;
+
         div.innerHTML = `
-            <div class="member-name">${member.name}</div>
-            <div class="member-status">${member.rank || 'Officer'}</div>
+            <div class="member-icon">
+                <i class="${isOverLimit ? 'fas fa-exclamation-triangle' : iconClass}"></i>
+            </div>
+            <div class="member-info">
+                <div class="member-name">${member.name}</div>
+                <div class="member-rank">${rank}</div>
+                <div class="member-status">
+                    <i class="fas fa-circle"></i>
+                    <span>Online</span>
+                </div>
+            </div>
         `;
         
         memberList.appendChild(div);
     });
 }
 
-// Add operation statistics
-function addOperationStats(members) {
-    // Remove existing stats if any
-    const existingStats = document.querySelector('.operation-stats');
-    if (existingStats) {
-        existingStats.remove();
-    }
-
-    const statsDiv = document.createElement('div');
-    statsDiv.classList.add('operation-stats');
-    
+function updateStats(members) {
+    // Extract max from operation title
     let max = 99;
     const match = /\((\d+)\/(\d+)\)/.exec(opTitle.textContent);
     if (match) max = parseInt(match[2]);
 
     const activeCount = members.length;
-    const maxCount = max;
     
-    statsDiv.innerHTML = `
-        <div class="stat-item">
-            <span>👮</span>
-            <span>${activeCount}/${maxCount}</span>
-        </div>
-        <div class="stat-item">
-            <span>🕐</span>
-            <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-        </div>
-    `;
-    
-    // Insert before leave button
-    ui.insertBefore(statsDiv, leaveBtn);
+    if (memberCountEl) {
+        memberCountEl.textContent = `${activeCount}/${max}`;
+        
+        // Update color based on capacity
+        if (activeCount > max) {
+            memberCountEl.style.color = '#ef4444';
+        } else if (activeCount > max * 0.8) {
+            memberCountEl.style.color = '#f59e0b';
+        } else {
+            memberCountEl.style.color = '#10b981';
+        }
+    }
 }
 
-// Enhanced leave operation with confirmation
+// Enhanced leave operation with better UX
 leaveBtn.addEventListener("click", () => {
+    const icon = leaveBtn.querySelector('i');
+    const text = leaveBtn.querySelector('span');
+    
     // Add loading state
-    leaveBtn.innerHTML = "🔄 Leaving...";
+    icon.className = "fas fa-spinner loading";
+    text.textContent = "Leaving...";
     leaveBtn.disabled = true;
     
     fetch(`https://${GetParentResourceName()}/leaveop`, {
@@ -143,7 +186,8 @@ leaveBtn.addEventListener("click", () => {
         hideUI();
     }).catch(() => {
         // Reset button on error
-        leaveBtn.innerHTML = "🚪 Leave Operation";
+        icon.className = "fas fa-sign-out-alt";
+        text.textContent = "Leave Operation";
         leaveBtn.disabled = false;
     });
 });
@@ -157,6 +201,7 @@ header.addEventListener("mousedown", (e) => {
     // Add dragging class for visual feedback
     ui.style.cursor = "grabbing";
     header.style.cursor = "grabbing";
+    ui.style.transition = "none";
 });
 
 document.addEventListener("mouseup", () => {
@@ -168,6 +213,7 @@ document.addEventListener("mouseup", () => {
         // Remove dragging visual feedback
         ui.style.cursor = "";
         header.style.cursor = "move";
+        ui.style.transition = "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
     }
     isDragging = false;
 });
@@ -178,12 +224,13 @@ document.addEventListener("mousemove", (e) => {
     const newLeft = e.clientX - dragOffset.x;
     const newTop = e.clientY - dragOffset.y;
     
-    // Constrain to viewport
-    const maxLeft = window.innerWidth - ui.offsetWidth;
-    const maxTop = window.innerHeight - ui.offsetHeight;
+    // Constrain to viewport with padding
+    const padding = 20;
+    const maxLeft = window.innerWidth - ui.offsetWidth - padding;
+    const maxTop = window.innerHeight - ui.offsetHeight - padding;
     
-    ui.style.left = `${Math.max(0, Math.min(newLeft, maxLeft))}px`;
-    ui.style.top = `${Math.max(0, Math.min(newTop, maxTop))}px`;
+    ui.style.left = `${Math.max(padding, Math.min(newLeft, maxLeft))}px`;
+    ui.style.top = `${Math.max(padding, Math.min(newTop, maxTop))}px`;
     ui.style.transform = "none";
 });
 
@@ -199,8 +246,9 @@ document.addEventListener("keydown", (e) => {
 // Add resize handler to maintain position
 window.addEventListener("resize", () => {
     if (ui.style.left && ui.style.top) {
-        const maxLeft = window.innerWidth - ui.offsetWidth;
-        const maxTop = window.innerHeight - ui.offsetHeight;
+        const padding = 20;
+        const maxLeft = window.innerWidth - ui.offsetWidth - padding;
+        const maxTop = window.innerHeight - ui.offsetHeight - padding;
         
         const currentLeft = parseInt(ui.style.left);
         const currentTop = parseInt(ui.style.top);
@@ -213,3 +261,11 @@ window.addEventListener("resize", () => {
         }
     }
 });
+
+// Add smooth scroll behavior for member list
+if (memberList) {
+    memberList.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        memberList.scrollTop += e.deltaY * 0.5;
+    });
+}
