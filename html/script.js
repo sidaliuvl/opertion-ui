@@ -92,8 +92,8 @@ function updateMembers(members, channel) {
         memberList.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-users empty-state-icon"></i>
-                <div class="empty-state-text">No Officers Assigned</div>
-                <div class="empty-state-subtext">Waiting for team members to join</div>
+                <div class="empty-state-text">No Officers</div>
+                <div class="empty-state-subtext">Waiting for team</div>
             </div>
         `;
         return;
@@ -213,7 +213,7 @@ document.addEventListener("mouseup", () => {
         // Remove dragging visual feedback
         ui.style.cursor = "";
         header.style.cursor = "move";
-        ui.style.transition = "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+        ui.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
     }
     isDragging = false;
 });
